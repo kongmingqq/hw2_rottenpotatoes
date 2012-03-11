@@ -7,15 +7,30 @@ class MoviesController < ApplicationController
   end
 
   def index
+    #set up checked ratings
+    @checked_ratings_hash = {}
+    if params[:ratings]
+      @checked_ratings_hash = params[:ratings]
+    end
+ 
+    @movies = Movie.all
+    
+    if !@checked_ratings_hash.empty?
+      @movies = Movie.where("rating in (?)", @checked_ratings_hash.keys)
+    end
+    
     if params[:sort] == "title"
-      @movies = Movie.order("title ASC")
+      @movies = @movies.order("title ASC")
       @sort = "title"
     elsif params[:sort] == "release_date"
-      @movies = Movie.order("release_date ASC")
+      @movies = @movies.order("release_date ASC")
       @sort = "release_date"
-    else
-      @movies = Movie.all
     end
+    
+    #set up all ratings
+    @all_ratings = []
+    Movie.select(:rating).each{|x| @all_ratings << x.rating}
+    @all_ratings = @all_ratings.uniq.sort
   end
 
   def new
