@@ -13,19 +13,20 @@ class MoviesController < ApplicationController
       @checked_ratings_hash = params[:ratings]
     end
  
-    @movies = Movie.all
-    
+    condition_hash = {}
     if !@checked_ratings_hash.empty?
-      @movies = Movie.where("rating in (?)", @checked_ratings_hash.keys)
+      condition_hash[:conditions] = ["rating in (?)", @checked_ratings_hash.keys]
     end
     
     if params[:sort] == "title"
-      @movies = @movies.order("title ASC")
+      condition_hash[:order] = "title ASC"
       @sort = "title"
     elsif params[:sort] == "release_date"
-      @movies = @movies.order("release_date ASC")
+      condition_hash[:order] = "release_date ASC"
       @sort = "release_date"
     end
+    
+    @movies = Movie.find(:all, condition_hash)
     
     #set up all ratings
     @all_ratings = []
