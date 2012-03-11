@@ -6,24 +6,45 @@ class MoviesController < ApplicationController
     # will render app/views/movies/show.<extension> by default
   end
 
+  def new_request?(params)
+    if !params[:ratings] && !params[:sort]
+      return true
+    end
+    return false
+  end
+  
+  def redirect?(params)
+    if new_request?(params) && ((session[:ratings] && !session[:ratings].empty?) || (session[:sort] && !session[:sort].empty?))
+      return true
+    end
+    return false
+  end
+  
   def index
+    if redirect?(params)
+      redirect_to movies_path :sort=>session[:sort], :ratings=>session[:ratings]
+    end
+    
     #set up checked ratings
     @checked_ratings_hash = {}
+    condition_hash = {}
+    
     if params[:ratings]
       @checked_ratings_hash = params[:ratings]
+    elsif new_request?(params) && session[:ratings]
+      @checked_ratings_hash = session[:ratings]
     end
- 
-    condition_hash = {}
+    
     if !@checked_ratings_hash.empty?
       condition_hash[:conditions] = ["rating in (?)", @checked_ratings_hash.keys]
     end
     
-    if params[:sort] == "title"
-      condition_hash[:order] = "title ASC"
-      @sort = "title"
-    elsif params[:sort] == "release_date"
-      condition_hash[:order] = "release_date ASC"
-      @sort = "release_date"
+    if params[:sort] && ["title","release_date"].include?(params[:sort])
+      condition_hash[:order] = params[:sort]+" ASC"
+      @sort = params[:sort]
+    elsif new_request?(params) && session[:sort] && !session[:sort].empty?
+      condition_hash[:order] = session[:sort]+" ASC"
+      @sort = session[:sort]
     end
     
     @movies = Movie.find(:all, condition_hash)
@@ -32,6 +53,11 @@ class MoviesController < ApplicationController
     @all_ratings = []
     Movie.select(:rating).each{|x| @all_ratings << x.rating}
     @all_ratings = @all_ratings.uniq.sort
+    
+    if !new_request?(params)
+      session[:ratings] = @checked_ratings_hash
+      session[:sort] = @sort
+    end
   end
 
   def new
